@@ -18,22 +18,18 @@ jobs:
             os: windows-latest
             ext: .exe
             args: --windowed
-            archive: zip
           - name: macOS
             os: macos-14
             ext: ""
             args: --windowed --target-arch universal2
-            archive: tgz
           - name: macOS-Legacy
             os: macos-13
             ext: ""
             args: --windowed
-            archive: tgz
           - name: Linux
             os: ubuntu-latest
             ext: ""
             args: --windowed
-            archive: tgz
 
     steps:
       - name: Checkout code
@@ -64,25 +60,13 @@ jobs:
           NAME="TuitionTracker_${{ matrix.name }}"
           if [ -d "TuitionTracker.app" ]; then
             cp -r TuitionTracker.app "${NAME}.app"
-            if [ "${{ matrix.archive }}" = "tgz" ]; then
-              tar -czf "${NAME}.app.tar.gz" "${NAME}.app"
-            else
-              zip -r "${NAME}.app.zip" "${NAME}.app"
-            fi
+            tar -czf "${NAME}.app.tar.gz" "${NAME}.app"
           elif [ -f "TuitionTracker${{ matrix.ext }}" ]; then
             mv "TuitionTracker${{ matrix.ext }}" "${NAME}${{ matrix.ext }}"
-            if [ "${{ matrix.archive }}" = "tgz" ]; then
-              tar -czf "${NAME}${{ matrix.ext }}.tar.gz" "${NAME}${{ matrix.ext }}"
-            else
-              zip "${NAME}${{ matrix.ext }}.zip" "${NAME}${{ matrix.ext }}"
-            fi
+            tar -czf "${NAME}${{ matrix.ext }}.tar.gz" "${NAME}${{ matrix.ext }}"
           else
             mv TuitionTracker "${NAME}"
-            if [ "${{ matrix.archive }}" = "tgz" ]; then
-              tar -czf "${NAME}.tar.gz" "${NAME}"
-            else
-              zip "${NAME}.zip" "${NAME}"
-            fi
+            tar -czf "${NAME}.tar.gz" "${NAME}"
           fi
 
       - name: Upload artifact
