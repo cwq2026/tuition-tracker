@@ -18,18 +18,22 @@ jobs:
             os: windows-latest
             ext: .exe
             args: --windowed
+            archive: zip
           - name: macOS
             os: macos-14
             ext: ""
             args: --windowed --target-arch universal2
+            archive: tgz
           - name: macOS-Legacy
             os: macos-13
             ext: ""
             args: --windowed
+            archive: tgz
           - name: Linux
             os: ubuntu-latest
             ext: ""
             args: --windowed
+            archive: tgz
 
     steps:
       - name: Checkout code
@@ -53,24 +57,37 @@ jobs:
             ${{ matrix.args }} \
             tuition_tracker.py
 
-      - name: Rename artifact
+      - name: Package artifact
         shell: bash
         run: |
           cd dist
+          NAME="TuitionTracker_${{ matrix.name }}"
           if [ -d "TuitionTracker.app" ]; then
-            cp -r TuitionTracker.app TuitionTracker_${{ matrix.name }}.app
-            zip -r TuitionTracker_${{ matrix.name }}.app.zip TuitionTracker_${{ matrix.name }}.app
+            cp -r TuitionTracker.app "${NAME}.app"
+            if [ "${{ matrix.archive }}" = "tgz" ]; then
+              tar -czf "${NAME}.app.tar.gz" "${NAME}.app"
+            else
+              zip -r "${NAME}.app.zip" "${NAME}.app"
+            fi
           elif [ -f "TuitionTracker${{ matrix.ext }}" ]; then
-            mv "TuitionTracker${{ matrix.ext }}" "TuitionTracker_${{ matrix.name }}${{ matrix.ext }}"
+            mv "TuitionTracker${{ matrix.ext }}" "${NAME}${{ matrix.ext }}"
+            if [ "${{ matrix.archive }}" = "tgz" ]; then
+              tar -czf "${NAME}${{ matrix.ext }}.tar.gz" "${NAME}${{ matrix.ext }}"
+            else
+              zip "${NAME}${{ matrix.ext }}.zip" "${NAME}${{ matrix.ext }}"
+            fi
           else
-            mv TuitionTracker "TuitionTracker_${{ matrix.name }}"
+            mv TuitionTracker "${NAME}"
+            if [ "${{ matrix.archive }}" = "tgz" ]; then
+              tar -czf "${NAME}.tar.gz" "${NAME}"
+            else
+              zip "${NAME}.zip" "${NAME}"
+            fi
           fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: TuitionTracker-${{ matrix.name }}
-          path: |
-            dist/TuitionTracker_${{ matrix.name }}${{ matrix.ext }}
-            dist/TuitionTracker_${{ matrix.name }}.app.zip
+          path: dist/*
           if-no-files-found: ignore
