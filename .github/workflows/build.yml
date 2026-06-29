@@ -1,0 +1,76 @@
+name: Build Tuition Tracker
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            ext: .exe
+            args: --windowed
+          - name: macOS
+            os: macos-14
+            ext: ""
+            args: --windowed --target-arch universal2
+          - name: macOS-Legacy
+            os: macos-13
+            ext: ""
+            args: --windowed
+          - name: Linux
+            os: ubuntu-latest
+            ext: ""
+            args: --windowed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build
+        shell: bash
+        run: |
+          pyinstaller --noconfirm --clean --onefile \
+            --name "TuitionTracker" \
+            ${{ matrix.args }} \
+            tuition_tracker.py
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          cd dist
+          if [ -d "TuitionTracker.app" ]; then
+            cp -r TuitionTracker.app TuitionTracker_${{ matrix.name }}.app
+            zip -r TuitionTracker_${{ matrix.name }}.app.zip TuitionTracker_${{ matrix.name }}.app
+          elif [ -f "TuitionTracker${{ matrix.ext }}" ]; then
+            mv "TuitionTracker${{ matrix.ext }}" "TuitionTracker_${{ matrix.name }}${{ matrix.ext }}"
+          else
+            mv TuitionTracker "TuitionTracker_${{ matrix.name }}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TuitionTracker-${{ matrix.name }}
+          path: |
+            dist/TuitionTracker_${{ matrix.name }}${{ matrix.ext }}
+            dist/TuitionTracker_${{ matrix.name }}.app.zip
+          if-no-files-found: skip
