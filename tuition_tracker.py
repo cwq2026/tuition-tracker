@@ -322,7 +322,7 @@ class TuitionApp:
         order_text = "降序" if self.sort_reverse else "升序"
         cap_text = f"  (上限 {cap:.2f} 元)" if cap and cap > 0 else ""
         self.total_label.config(
-            text=f"序号数: {len(students)}    全校累计自费总额: {grand:.2f} 元{cap_text}    排序: {self.sort_col} ({order_text})"
+            text=f"序号数: {len(students)}    全部累计自费总额: {grand:.2f} 元{cap_text}    排序: {self.sort_col} ({order_text})"
         )
 
         self.update_title()
