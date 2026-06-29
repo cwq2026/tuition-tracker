@@ -73,4 +73,4 @@ jobs:
           path: |
             dist/TuitionTracker_${{ matrix.name }}${{ matrix.ext }}
             dist/TuitionTracker_${{ matrix.name }}.app.zip
-          if-no-files-found: skip
+          if-no-files-found: ignore
