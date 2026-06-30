@@ -64,25 +64,31 @@ jobs:
           cd dist
           NAME="TuitionTracker_${{ matrix.name }}"
           if [ -d "TuitionTracker.app" ]; then
-            cp -r TuitionTracker.app "${NAME}.app"
+            mv TuitionTracker.app "${NAME}.app"
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}.app.tar.gz" "${NAME}.app"
+              rm -rf "${NAME}.app"
             else
               zip -r "${NAME}.app.zip" "${NAME}.app"
+              rm -rf "${NAME}.app"
             fi
           elif [ -f "TuitionTracker${{ matrix.ext }}" ]; then
             mv "TuitionTracker${{ matrix.ext }}" "${NAME}${{ matrix.ext }}"
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}${{ matrix.ext }}.tar.gz" "${NAME}${{ matrix.ext }}"
+              rm -f "${NAME}${{ matrix.ext }}"
             else
               zip "${NAME}${{ matrix.ext }}.zip" "${NAME}${{ matrix.ext }}"
+              rm -f "${NAME}${{ matrix.ext }}"
             fi
           else
             mv TuitionTracker "${NAME}"
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}.tar.gz" "${NAME}"
+              rm -f "${NAME}"
             else
               zip "${NAME}.zip" "${NAME}"
+              rm -f "${NAME}"
             fi
           fi
 
@@ -92,3 +98,4 @@ jobs:
           name: TuitionTracker-${{ matrix.name }}
           path: dist/*
           if-no-files-found: ignore
+          compression-level: 0
