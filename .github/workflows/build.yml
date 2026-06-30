@@ -18,26 +18,13 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install build tools
-        shell: pwsh
-        run: |
-          choco install ImageMagick --no-progress -y
-
-      - name: Generate icon.ico
-        shell: pwsh
-        run: |
-          convert assets/icon.svg -define icon:auto-resize=16,32,48,64,128,256 assets/icon.ico
-
       - name: Install PyInstaller
         run: python -m pip install --upgrade pip; pip install pyinstaller
 
       - name: Build .exe
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed `
-            --name TuitionTracker `
-            --icon assets/icon.ico `
-            tuition_tracker.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name TuitionTracker tuition_tracker.py
 
       - name: Bundle for noobs
         shell: pwsh
@@ -62,7 +49,7 @@ jobs:
           )
           $content = $lines -join "`r`n"
           [System.IO.File]::WriteAllText("$pwd\使用说明.txt", $content, [System.Text.Encoding]::UTF8)
-          tar -czf TuitionTracker_Windows.zip TuitionTracker.exe index.html 使用说明.txt
+          Compress-Archive -Path TuitionTracker.exe,index.html,使用说明.txt -DestinationPath TuitionTracker_Windows.zip -Force
 
       - uses: actions/upload-artifact@v4
         with:
@@ -81,43 +68,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install tools
-        run: |
-          brew install imagemagick 2>/dev/null || true
-
-      - name: Generate icon.png + .icns
-        run: |
-          cd assets
-          convert icon.svg -resize 1024x1024 icon.png
-          rm -rf icon.iconset && mkdir icon.iconset
-          for s in 16 32 64 128 256 512 1024; do
-            convert icon.png -resize ${s}x${s} icon.iconset/_${s}.png
-            convert icon.png -resize $((s*2))x$((s*2)) icon.iconset/_${s}x2.png
-          done
-          mv icon.iconset/_16.png   icon.iconset/icon_16x16.png
-          mv icon.iconset/_16x2.png icon.iconset/icon_16x16@2x.png
-          mv icon.iconset/_32.png   icon.iconset/icon_32x32.png
-          mv icon.iconset/_32x2.png icon.iconset/icon_32x32@2x.png
-          mv icon.iconset/_64.png   icon.iconset/icon_64x64.png
-          mv icon.iconset/_64x2.png icon.iconset/icon_64x64@2x.png
-          mv icon.iconset/_128.png   icon.iconset/icon_128x128.png
-          mv icon.iconset/_128x2.png icon.iconset/icon_128x128@2x.png
-          mv icon.iconset/_256.png   icon.iconset/icon_256x256.png
-          mv icon.iconset/_256x2.png icon.iconset/icon_256x256@2x.png
-          iconutil -c icns icon.iconset -o icon.icns 2>/dev/null || true
-          ls icon.iconset | head
-
-      - name: Install PyInstaller
-        run: python -m pip install --upgrade pip; pip install pyinstaller
-
       - name: Build .app
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile \
-            --name TuitionTracker \
-            tuition_tracker.py
-          if [ -d dist/TuitionTracker.app ] && [ -f assets/icon.icns ]; then
-            cp assets/icon.icns dist/TuitionTracker.app/Contents/Resources/app.icns 2>/dev/null || true
-          fi
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --name TuitionTracker tuition_tracker.py
           rm -f dist/TuitionTracker 2>/dev/null || true
           xattr -cr dist/TuitionTracker.app 2>/dev/null || true
           ls dist/
