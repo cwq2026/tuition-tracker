@@ -25,7 +25,7 @@ jobs:
             args: --windowed --target-arch universal2
             archive: tgz
           - name: macOS-Legacy
-            os: macos-13
+            os: macos-15-intel
             ext: ""
             args: --windowed
             archive: tgz
