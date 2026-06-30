@@ -18,7 +18,7 @@ jobs:
             os: windows-latest
             ext: .exe
             args: --windowed
-            archive: zip
+            archive: tgz
           - name: macOS
             os: macos-14
             ext: ""
