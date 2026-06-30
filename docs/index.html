@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>自资费统计</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; background: #f4f6f9; color: #2c3e50; min-height: 100vh; padding: 24px 20px 40px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #1a2b3c; }
+  .card { background: #fff; border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #5a6a7a; border-left: 3px solid #4a90d9; padding-left: 8px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  label { font-size: 14px; color: #4a5a6a; }
+  input[type="text"], input[type="number"] { padding: 8px 10px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px; outline: none; min-width: 140px; flex: 1; transition: border-color .15s; }
+  input[type="text"]:focus, input[type="number"]:focus { border-color: #4a90d9; }
+  button { padding: 8px 16px; border: none; border-radius: 6px; background: #4a90d9; color: #fff; font-size: 14px; cursor: pointer; transition: background .15s; font-family: inherit; }
+  button:hover { background: #3b7fc4; }
+  button.danger { background: #d9534f; }
+  button.danger:hover { background: #c24141; }
+  button.ghost { background: transparent; color: #4a90d9; border: 1px solid #4a90d9; }
+  button.ghost:hover { background: #eaf3ff; }
+  .sort-bar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+  .sort-bar label { margin-right: 4px; }
+  .sort-btn { padding: 4px 10px; font-size: 13px; background: #eef2f7; color: #4a5a6a; border: 1px solid transparent; }
+  .sort-btn.active { background: #4a90d9; color: #fff; }
+  .sort-btn.asc::after { content: " ▲"; }
+  .sort-btn.desc::after { content: " ▼"; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eef1f5; }
+  th { background: #f8fafc; color: #5a6a7a; font-weight: 600; }
+  th.clickable { cursor: pointer; user-select: none; }
+  th.clickable:hover { background: #eef2f7; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.center { text-align: center; }
+  tr.overcap td { background: #fde7e7 !important; }
+  .empty { text-align: center; padding: 32px; color: #9aa8b5; }
+  .footer { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; font-size: 14px; color: #4a5a6a; padding: 10px 4px 0; }
+  .footer strong { color: #1a2b3c; font-size: 15px; }
+  .footer .muted { color: #9aa8b5; font-size: 13px; }
+  .cap-display { font-size: 13px; color: #d9534f; margin-left: 8px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; z-index: 100; opacity: 0; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+  .toast.warn { background: #d9534f; }
+  .toast.ok { background: #2ecc71; }
+  .import-export { display: flex; gap: 8px; flex-wrap: wrap; }
+  @media (max-width: 600px) {
+    body { padding: 14px 12px 30px; }
+    h1 { font-size: 19px; }
+    .card { padding: 12px; }
+    th, td { padding: 8px 6px; font-size: 13px; }
+    input[type="text"], input[type="number"] { min-width: 100px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>自资费统计<span class="muted" id="titleExtra"></span></h1>
+
+  <div class="card">
+    <h2>自费上限设置</h2>
+    <div class="row">
+      <label>每位序号累计自费上限 (元, 0 表示不限):</label>
+      <input type="number" id="capInput" step="0.01" min="0" placeholder="0">
+      <button onclick="saveCap()">保存上限</button>
+      <span class="cap-display" id="capLabel"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>录入自费</h2>
+    <div class="row">
+      <label>序号:</label>
+      <input type="text" id="sidInput" placeholder="例如 1、2、202501、abc123" autocomplete="off">
+      <label>自费 (元):</label>
+      <input type="number" id="amountInput" step="0.01" min="0" placeholder="例如 500">
+      <button onclick="addPayment()">提交缴费</button>
+      <button class="danger" onclick="clearAll()">清空全部</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>缴费记录汇总</h2>
+    <div class="sort-bar">
+      <span>排序:</span>
+      <button class="sort-btn" id="sortSid" onclick="setSort('sid')">序号</button>
+      <button class="sort-btn" id="sortTotal" onclick="setSort('total')">累计自费</button>
+      <button class="sort-btn" id="sortCount" onclick="setSort('count')">次数</button>
+      <button class="sort-btn" id="sortDir" onclick="toggleDir()">升/降序</button>
+    </div>
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th class="clickable" onclick="setSort('sid')">序号</th>
+          <th class="clickable" onclick="setSort('total')">累计自费 (元)</th>
+          <th class="clickable" onclick="setSort('count')">缴费次数</th>
+          <th>历次金额 (元)</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="footer">
+      <span><strong id="totalCount">序号数: 0</strong></span>
+      <span><strong id="totalGrand">全部累计自费总额: 0.00 元</strong><span class="cap-display" id="grandCapLabel"></span></span>
+      <span class="muted" id="orderLabel"></span>
+      <span style="flex:1"></span>
+      <span class="import-export">
+        <button class="ghost" onclick="exportData()">导出数据 (.json)</button>
+        <label class="ghost" style="padding:6px 14px; border-radius:6px; border:1px solid #4a90d9; cursor:pointer;">
+          导入数据
+          <input type="file" accept="application/json" style="display:none" onchange="importData(this)">
+        </label>
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LS_KEY = "tuition-tracker-data";
+
+let state = {
+  _students: {},
+  _settings: { tuition_cap: 0, first_after_reset_time: null },
+  sort_col: "sid",
+  sort_reverse: false
+};
+
+function naturalKey(s) {
+  return String(s).split(/(\d+)/).map(t => /^\d+$/.test(t) ? {n: +t, s: t} : {n: NaN, s: t.toLowerCase()});
+}
+function naturalCompare(a, b) {
+  const ka = naturalKey(a), kb = naturalKey(b);
+  const len = Math.max(ka.length, kb.length);
+  for (let i = 0; i < len; i++) {
+    const x = ka[i] || {n: NaN, s: ""}, y = kb[i] || {n: NaN, s: ""};
+    let c;
+    if (!isNaN(x.n) && !isNaN(y.n)) c = x.n - y.n;
+    else c = x.s.localeCompare(y.s, "zh");
+    if (c !== 0) return c;
+  }
+  return 0;
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      state._students = parsed._students || parsed || {};
+      state._settings = parsed._settings || { tuition_cap: 0, first_after_reset_time: null };
+    }
+  } catch (e) {}
+}
+function saveData() {
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  } catch (e) { return String(iso); }
+}
+
+function updateTitle() {
+  const t = fmtDate(state._settings.first_after_reset_time);
+  document.title = t ? `自资费统计  (首次记录: ${t})` : "自资费统计";
+  document.getElementById("titleExtra").textContent = t ? `  (首次记录: ${t})` : "";
+}
+
+function saveCap() {
+  const v = parseFloat(document.getElementById("capInput").value);
+  const cap = isNaN(v) ? 0 : v < 0 ? 0 : v;
+  state._settings.tuition_cap = +cap.toFixed(2);
+  document.getElementById("capInput").value = state._settings.tuition_cap;
+  saveData();
+  updateCapLabel();
+  toast(`上限已保存: ${state._settings.tuition_cap.toFixed(2)} 元`, "ok");
+  refreshTable();
+}
+
+function updateCapLabel() {
+  const cap = state._settings.tuition_cap;
+  document.getElementById("capLabel").textContent = cap && cap > 0 ? `当前上限: ${cap.toFixed(2)} 元` : "当前: 不限制";
+}
+
+function addPayment() {
+  const sid = document.getElementById("sidInput").value.trim();
+  const amtStr = document.getElementById("amountInput").value.trim();
+  if (!sid) return toast("请输入序号", "warn");
+  if (!amtStr) return toast("请输入自费", "warn");
+  const amt = parseFloat(amtStr);
+  if (isNaN(amt)) return toast("自费必须是数字", "warn");
+  if (amt < 0) return toast("自费不能为负数", "warn");
+
+  const now = new Date();
+  const iso = now.getFullYear() + "-" +
+    String(now.getMonth()+1).padStart(2,"0") + "-" +
+    String(now.getDate()).padStart(2,"0") + "T" +
+    String(now.getHours()).padStart(2,"0") + ":" +
+    String(now.getMinutes()).padStart(2,"0") + ":" +
+    String(now.getSeconds()).padStart(2,"0");
+
+  if (!state._students[sid]) state._students[sid] = { total: 0, count: 0, history: [] };
+  const rec = state._students[sid];
+  const newTotal = +(rec.total + amt).toFixed(2);
+
+  const cap = state._settings.tuition_cap;
+  if (cap && cap > 0 && newTotal > cap) {
+    if (!confirm(`序号 ${sid} 本次缴费后累计将为 ${newTotal.toFixed(2)} 元，已超过上限 ${cap.toFixed(2)} 元！\n\n是否仍要提交？`))
+      return;
+  }
+
+  rec.total = newTotal;
+  rec.count += 1;
+  rec.history.push(+amt.toFixed(2));
+
+  if (!state._settings.first_after_reset_time) state._settings.first_after_reset_time = iso;
+
+  saveData();
+  refreshTable();
+  document.getElementById("sidInput").value = "";
+  document.getElementById("amountInput").value = "";
+  document.getElementById("sidInput").focus();
+  toast("已提交", "ok");
+}
+
+function clearAll() {
+  if (Object.keys(state._students).length === 0) return;
+  if (!confirm("确定要清空全部记录吗？此操作不可撤销。")) return;
+  state._students = {};
+  state._settings.first_after_reset_time = null;
+  saveData();
+  refreshTable();
+  toast("已清空", "ok");
+}
+
+function setSort(col) {
+  if (state.sort_col === col) state.sort_reverse = !state.sort_reverse;
+  else { state.sort_col = col; state.sort_reverse = false; }
+  refreshTable();
+}
+function toggleDir() { state.sort_reverse = !state.sort_reverse; refreshTable(); }
+
+function refreshTable() {
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  const cap = state._settings.tuition_cap;
+  const sids = Object.keys(state._students);
+
+  let sorted;
+  if (state.sort_col === "sid") {
+    sorted = [...sids].sort((a, b) => naturalCompare(a, b));
+  } else if (state.sort_col === "total") {
+    sorted = [...sids].sort((a, b) => state._students[a].total - state._students[b].total);
+  } else if (state.sort_col === "count") {
+    sorted = [...sids].sort((a, b) => state._students[a].count - state._students[b].count);
+  }
+  if (state.sort_reverse) sorted.reverse();
+
+  let grand = 0;
+  let hasOver = false;
+  sorted.forEach(sid => {
+    const r = state._students[sid];
+    grand += r.total;
+    const over = cap && cap > 0 && r.total > cap;
+    if (over) hasOver = true;
+    const tr = document.createElement("tr");
+    if (over) tr.className = "overcap";
+    tr.innerHTML =
+      `<td>${escapeHtml(sid)}</td>` +
+      `<td class="num">${r.total.toFixed(2)}</td>` +
+      `<td class="center">${r.count}</td>` +
+      `<td>${r.history.map(v => v.toFixed(2)).join(" + ")}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">暂无记录，请在上方录入</td></tr>`;
+  }
+
+  document.getElementById("totalCount").textContent = `序号数: ${sorted.length}`;
+  document.getElementById("totalGrand").textContent = `全部累计自费总额: ${grand.toFixed(2)} 元`;
+  document.getElementById("grandCapLabel").textContent = cap && cap > 0 ? `  (上限 ${cap.toFixed(2)} 元)` : "";
+  document.getElementById("orderLabel").textContent = `排序: ${state.sort_col === "sid" ? "序号" : state.sort_col === "total" ? "累计自费" : "次数"} (${state.sort_reverse ? "降序" : "升序"})`;
+
+  document.getElementById("sortSid").className = "sort-btn " + (state.sort_col === "sid" ? (state.sort_reverse ? "desc active" : "asc active") : "");
+  document.getElementById("sortTotal").className = "sort-btn " + (state.sort_col === "total" ? (state.sort_reverse ? "desc active" : "asc active") : "");
+  document.getElementById("sortCount").className = "sort-btn " + (state.sort_col === "count" ? (state.sort_reverse ? "desc active" : "asc active") : "");
+  document.getElementById("sortDir").textContent = state.sort_reverse ? "降序 ▼" : "升序 ▲";
+
+  updateTitle();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify({ _students: state._students, _settings: state._settings }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const now = new Date();
+  const stamp = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0") + "_" + String(now.getHours()).padStart(2,"0") + String(now.getMinutes()).padStart(2,"0");
+  a.download = `tuition_data_${stamp}.json`;
+  a.click();
+  toast("已导出", "ok");
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== "object") throw new Error("invalid");
+      if (!confirm("确定要导入此数据吗？当前浏览器中的数据会被替换。")) return;
+      state._students = data._students || data || {};
+      state._settings = data._settings || state._settings;
+      saveData();
+      refreshTable();
+      toast("导入成功", "ok");
+    } catch (err) { toast("导入失败: 文件格式错误", "warn"); }
+  };
+  reader.readAsText(file);
+  input.value = "";
+}
+
+let toastTimer = null;
+function toast(msg, cls) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast show " + (cls || "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = "toast"; }, 2200);
+}
+
+loadData();
+const initCap = parseFloat(state._settings.tuition_cap);
+document.getElementById("capInput").value = isNaN(initCap) ? 0 : initCap;
+updateCapLabel();
+refreshTable();
+
+document.getElementById("sidInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("amountInput").focus();
+});
+document.getElementById("amountInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") addPayment();
+});
+document.getElementById("capInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") saveCap();
+});
+document.getElementById("sidInput").focus();
+</script>
+</body>
+</html>
