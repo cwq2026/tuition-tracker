@@ -52,6 +52,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
+          rm -rf dist build
           pyinstaller --noconfirm --clean --onefile \
             --name "TuitionTracker" \
             ${{ matrix.args }} \
