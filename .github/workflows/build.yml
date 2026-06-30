@@ -65,6 +65,10 @@ jobs:
           NAME="TuitionTracker_${{ matrix.name }}"
           if [ -d "TuitionTracker.app" ]; then
             mv TuitionTracker.app "${NAME}.app"
+            # 设置可执行权限
+            chmod +x "${NAME}.app/Contents/MacOS/TuitionTracker"
+            # 清除隔离属性（避免Gatekeeper警告）
+            xattr -cr "${NAME}.app" 2>/dev/null || true
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}.app.tar.gz" "${NAME}.app"
             else
@@ -72,6 +76,7 @@ jobs:
             fi
           elif [ -f "TuitionTracker${{ matrix.ext }}" ]; then
             mv "TuitionTracker${{ matrix.ext }}" "${NAME}${{ matrix.ext }}"
+            chmod +x "${NAME}${{ matrix.ext }}" 2>/dev/null || true
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}${{ matrix.ext }}.tar.gz" "${NAME}${{ matrix.ext }}"
             else
@@ -79,6 +84,7 @@ jobs:
             fi
           else
             mv TuitionTracker "${NAME}"
+            chmod +x "${NAME}" 2>/dev/null || true
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}.tar.gz" "${NAME}"
             else
