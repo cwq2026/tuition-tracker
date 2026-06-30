@@ -70,6 +70,8 @@ jobs:
             xattr -cr "${NAME}.app" 2>/dev/null || true
             tar -czf "${NAME}.app.tar.gz" "${NAME}.app"
             rm -rf "${NAME}.app"
+            # PyInstaller 在 macOS 同时会生成一个同名裸可执行文件，一并删除
+            rm -f TuitionTracker
           elif [ -f "TuitionTracker${{ matrix.ext }}" ]; then
             mv "TuitionTracker${{ matrix.ext }}" "${NAME}${{ matrix.ext }}"
             chmod +x "${NAME}${{ matrix.ext }}" 2>/dev/null || true
