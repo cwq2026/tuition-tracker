@@ -44,23 +44,24 @@ jobs:
         run: |
           cd dist
           Copy-Item ../docs/index.html index.html
-          @'
-TuitionTracker 使用说明（Windows）
-================================
-
-1. 双击 TuitionTracker.exe 就能打开。
-2. 提示“Windows Defender 已阻止未知来源”？
-     → 点击「更多信息」→「仍要运行」。
-3. 数据会自动保存在同目录下的 tuition_data.json，
-   把 .exe 和 .json 放一起备份即可。
-4. 如果杀毒软件提示，这是误报（程序很小且开源），
-   选择「允许 / 保留」即可。
-
-浏览器版（打不开 .exe 时用）
-================================
-双击 index.html，用 Edge / Chrome 打开即可。
-数据保存在浏览器里（localStorage）。
-'@ | Out-File -Encoding utf8 使用说明.txt
+          $lines = @(
+            "TuitionTracker 使用说明（Windows）",
+            "================================",
+            "",
+            "1. 双击 TuitionTracker.exe 就能打开。",
+            "2. 提示 Windows Defender 已阻止未知来源？",
+            "   点击「更多信息」→「仍要运行」。",
+            "3. 数据会自动保存在同目录下的 tuition_data.json，",
+            "   把 .exe 和 .json 放一起备份即可。",
+            "4. 如果杀毒软件提示，这是误报，选择「允许 / 保留」即可。",
+            "",
+            "浏览器版（打不开 .exe 时用）",
+            "============================",
+            "双击 index.html，用 Edge 或 Chrome 打开即可。",
+            "数据保存在浏览器里（localStorage）。"
+          )
+          $content = $lines -join "`r`n"
+          [System.IO.File]::WriteAllText("$pwd\使用说明.txt", $content, [System.Text.Encoding]::UTF8)
           tar -czf TuitionTracker_Windows.zip TuitionTracker.exe index.html 使用说明.txt
 
       - uses: actions/upload-artifact@v4
@@ -82,23 +83,27 @@ TuitionTracker 使用说明（Windows）
 
       - name: Install tools
         run: |
-          brew install imagemagick create-dmg || true
+          brew install imagemagick 2>/dev/null || true
 
       - name: Generate icon.png + .icns
         run: |
           cd assets
           convert icon.svg -resize 1024x1024 icon.png
           rm -rf icon.iconset && mkdir icon.iconset
-          sips -z 16 16     icon.png --out icon.iconset/icon_16x16.png      2>/dev/null || convert icon.png -resize 16x16 icon.iconset/icon_16x16.png
-          sips -z 32 32     icon.png --out icon.iconset/icon_16x16@2x.png    2>/dev/null || convert icon.png -resize 32x32 icon.iconset/icon_16x16@2x.png
-          sips -z 32 32     icon.png --out icon.iconset/icon_32x32.png      2>/dev/null || convert icon.png -resize 32x32 icon.iconset/icon_32x32.png
-          sips -z 64 64     icon.png --out icon.iconset/icon_32x32@2x.png  2>/dev/null || convert icon.png -resize 64x64 icon.iconset/icon_32x32@2x.png
-          sips -z 128 128   icon.png --out icon.iconset/icon_64x64.png      2>/dev/null || convert icon.png -resize 128x128 icon.iconset/icon_64x64.png
-          sips -z 256 256   icon.png --out icon.iconset/icon_64x64@2x.png   2>/dev/null || convert icon.png -resize 256x256 icon.iconset/icon_64x64@2x.png
-          sips -z 256 256   icon.png --out icon.iconset/icon_128x128.png    2>/dev/null || convert icon.png -resize 256x256 icon.iconset/icon_128x128.png
-          sips -z 512 512   icon.png --out icon.iconset/icon_128x128@2x.png 2>/dev/null || convert icon.png -resize 512x512 icon.iconset/icon_128x128@2x.png
-          sips -z 512 512   icon.png --out icon.iconset/icon_256x256.png    2>/dev/null || convert icon.png -resize 512x512 icon.iconset/icon_256x256.png
-          sips -z 1024 1024 icon.png --out icon.iconset/icon_256x256@2x.png 2>/dev/null || convert icon.png -resize 1024x1024 icon.iconset/icon_256x256@2x.png
+          for s in 16 32 64 128 256 512 1024; do
+            convert icon.png -resize ${s}x${s} icon.iconset/_${s}.png
+            convert icon.png -resize $((s*2))x$((s*2)) icon.iconset/_${s}x2.png
+          done
+          mv icon.iconset/_16.png   icon.iconset/icon_16x16.png
+          mv icon.iconset/_16x2.png icon.iconset/icon_16x16@2x.png
+          mv icon.iconset/_32.png   icon.iconset/icon_32x32.png
+          mv icon.iconset/_32x2.png icon.iconset/icon_32x32@2x.png
+          mv icon.iconset/_64.png   icon.iconset/icon_64x64.png
+          mv icon.iconset/_64x2.png icon.iconset/icon_64x64@2x.png
+          mv icon.iconset/_128.png   icon.iconset/icon_128x128.png
+          mv icon.iconset/_128x2.png icon.iconset/icon_128x128@2x.png
+          mv icon.iconset/_256.png   icon.iconset/icon_256x256.png
+          mv icon.iconset/_256x2.png icon.iconset/icon_256x256@2x.png
           iconutil -c icns icon.iconset -o icon.icns 2>/dev/null || true
           ls icon.iconset | head
 
@@ -109,53 +114,39 @@ TuitionTracker 使用说明（Windows）
         run: |
           python -m PyInstaller --noconfirm --clean --windowed --onefile \
             --name TuitionTracker \
-            --icon assets/icon.icns \
-            --osx-bundle-identifier com.local.tuitiontracker \
-            tuition_tracker.py || \
-          python -m PyInstaller --noconfirm --clean --windowed --onefile \
-            --name TuitionTracker \
-            --icon assets/icon.icns \
             tuition_tracker.py
-          if [ -f assets/icon.icns ] && [ -d dist/TuitionTracker.app ]; then
+          if [ -d dist/TuitionTracker.app ] && [ -f assets/icon.icns ]; then
             cp assets/icon.icns dist/TuitionTracker.app/Contents/Resources/app.icns 2>/dev/null || true
           fi
           rm -f dist/TuitionTracker 2>/dev/null || true
           xattr -cr dist/TuitionTracker.app 2>/dev/null || true
+          ls dist/
 
-      - name: Create DMG
+      - name: Package DMG + noob text
         run: |
           cd dist
           cp ../docs/index.html .
-          cat > 使用说明.txt <<'EOF'
-TuitionTracker 使用说明（Mac）
-=============================
-
-第 1 步：双击 TuitionTracker.dmg，把 TuitionTracker 图标拖进「应用程序」。
-
-第 2 步（非常重要，只做一次）：
-   打开「应用程序」，找到 TuitionTracker，不要直接双击打开！
-   用鼠标（右键）点一下 TuitionTracker → 选「打开」→ 再点一次「打开」确认。
-   以后就可以正常双击打开了。
-
-第 3 步：如果出现提示“来自身份不明的开发者”，
-   就照上面第 2 步做（右键 → 打开）。
-
-浏览器版（零门槛）
-==================
-双击 index.html，用 Safari / Chrome 打开即可。
-数据保存在浏览器里。
-EOF
-
-          create-dmg \
-            --volname "TuitionTracker" \
-            --window-size 520 340 \
-            --icon-size 120 \
-            --icon "TuitionTracker.app" 140 160 \
-            --app-drop-link 380 160 \
-            --background "https://raw.githubusercontent.com/" \
-            TuitionTracker.dmg TuitionTracker.app 2>/dev/null || \
+          python -c "open('使用说明.txt','w',encoding='utf-8').write('\n'.join([
+            'TuitionTracker 使用说明（Mac）',
+            '==============================',
+            '',
+            '第 1 步：双击 TuitionTracker.dmg，把 TuitionTracker 图标拖进「应用程序」。',
+            '',
+            '第 2 步（非常重要，只做一次）：',
+            '   打开「应用程序」，找到 TuitionTracker，不要直接双击打开！',
+            '   用鼠标右键点一下 TuitionTracker -> 选「打开」-> 再点一次「打开」确认。',
+            '   以后就可以正常双击打开了。',
+            '',
+            '第 3 步：如果出现提示来自身份不明的开发者，就照上面第 2 步做。',
+            '',
+            '浏览器版（零门槛）',
+            '==================',
+            '双击 index.html，用 Safari 或 Chrome 打开即可。',
+            '数据保存在浏览器里。',
+          ]))"
           hdiutil create -volname TuitionTracker -srcfolder TuitionTracker.app -ov -format UDZO TuitionTracker.dmg
           tar -czf TuitionTracker_Mac.tar.gz TuitionTracker.dmg 使用说明.txt index.html
+          ls -la
 
       - uses: actions/upload-artifact@v4
         with:
