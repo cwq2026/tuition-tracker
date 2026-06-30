@@ -67,30 +67,28 @@ jobs:
             mv TuitionTracker.app "${NAME}.app"
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}.app.tar.gz" "${NAME}.app"
-              rm -rf "${NAME}.app"
             else
               zip -r "${NAME}.app.zip" "${NAME}.app"
-              rm -rf "${NAME}.app"
             fi
           elif [ -f "TuitionTracker${{ matrix.ext }}" ]; then
             mv "TuitionTracker${{ matrix.ext }}" "${NAME}${{ matrix.ext }}"
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}${{ matrix.ext }}.tar.gz" "${NAME}${{ matrix.ext }}"
-              rm -f "${NAME}${{ matrix.ext }}"
             else
               zip "${NAME}${{ matrix.ext }}.zip" "${NAME}${{ matrix.ext }}"
-              rm -f "${NAME}${{ matrix.ext }}"
             fi
           else
             mv TuitionTracker "${NAME}"
             if [ "${{ matrix.archive }}" = "tgz" ]; then
               tar -czf "${NAME}.tar.gz" "${NAME}"
-              rm -f "${NAME}"
             else
               zip "${NAME}.zip" "${NAME}"
-              rm -f "${NAME}"
             fi
           fi
+          # 只保留压缩包，删除原始文件
+          rm -rf "${NAME}.app" "${NAME}${{ matrix.ext }}" "${NAME}" 2>/dev/null || true
+          # 打印最终的文件列表
+          ls -la
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
