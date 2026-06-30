@@ -6,113 +6,344 @@
 <title>自资费统计</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; background: #f4f6f9; color: #2c3e50; min-height: 100vh; padding: 24px 20px 40px; }
-  .container { max-width: 960px; margin: 0 auto; }
-  h1 { font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #1a2b3c; }
-  .card { background: #fff; border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
-  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #5a6a7a; border-left: 3px solid #4a90d9; padding-left: 8px; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  label { font-size: 14px; color: #4a5a6a; }
-  input[type="text"], input[type="number"] { padding: 8px 10px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px; outline: none; min-width: 140px; flex: 1; transition: border-color .15s; }
-  input[type="text"]:focus, input[type="number"]:focus { border-color: #4a90d9; }
-  button { padding: 8px 16px; border: none; border-radius: 6px; background: #4a90d9; color: #fff; font-size: 14px; cursor: pointer; transition: background .15s; font-family: inherit; }
-  button:hover { background: #3b7fc4; }
-  button.danger { background: #d9534f; }
-  button.danger:hover { background: #c24141; }
-  button.ghost { background: transparent; color: #4a90d9; border: 1px solid #4a90d9; }
-  button.ghost:hover { background: #eaf3ff; }
-  .sort-bar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
-  .sort-bar label { margin-right: 4px; }
-  .sort-btn { padding: 4px 10px; font-size: 13px; background: #eef2f7; color: #4a5a6a; border: 1px solid transparent; }
-  .sort-btn.active { background: #4a90d9; color: #fff; }
-  .sort-btn.asc::after { content: " ▲"; }
-  .sort-btn.desc::after { content: " ▼"; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "PingFang SC", "Helvetica Neue", "Microsoft YaHei", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: #1d1d1f;
+    min-height: 100vh;
+    padding: 40px 32px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: linear-gradient(180deg, #f5f5f7 0%, #ebebef 100%);
+    background-attachment: fixed;
+  }
+
+  .shell {
+    width: 760px;
+    max-width: 100%;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-radius: 16px;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.9) inset,
+      0 20px 40px -12px rgba(0,0,0,0.20),
+      0 2px 6px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+
+  .titlebar {
+    background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(245,245,247,0.6) 100%);
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+  .traffic-lights { display: flex; gap: 8px; -webkit-app-region: no-drag; }
+  .traffic-lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .traffic-lights .r { background: #ff5f57; }
+  .traffic-lights .y { background: #febc2e; }
+  .traffic-lights .g { background: #28c840; }
+  .titlebar .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d1d1f;
+    letter-spacing: -0.01em;
+  }
+  .titlebar .subtitle {
+    font-size: 12px;
+    color: #86868b;
+    margin-left: 6px;
+  }
+
+  .content {
+    padding: 20px 24px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .group {
+    background: rgba(255,255,255,0.6);
+    border: 0.5px solid rgba(0,0,0,0.06);
+    border-radius: 12px;
+    padding: 14px 16px 16px;
+  }
+  .group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .group-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #86868b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .group-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  label { font-size: 13px; color: #424245; }
+  input[type="text"], input[type="number"] {
+    font-family: inherit;
+    padding: 7px 12px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    background: rgba(255,255,255,0.8);
+    color: #1d1d1f;
+    box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.04);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus {
+    border-color: rgba(0,122,255,0.6);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.18), inset 0 0 0 0.5px rgba(0,0,0,0.06);
+    background: #fff;
+  }
+
+  button {
+    font-family: inherit;
+    padding: 7px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: filter .12s, transform .05s, background .15s;
+    letter-spacing: -0.005em;
+  }
+  button:active { transform: translateY(0.5px); }
+  button.primary {
+    background: #007aff;
+    color: #fff;
+  }
+  button.primary:hover { background: #0a84ff; }
+  button.danger {
+    background: rgba(255, 59, 48, 0.9);
+    color: #fff;
+  }
+  button.danger:hover { background: rgba(255, 59, 48, 1); }
+  button.default {
+    background: rgba(0,0,0,0.04);
+    color: #1d1d1f;
+  }
+  button.default:hover { background: rgba(0,0,0,0.08); }
+
+  .cap-label {
+    font-size: 12px;
+    color: #ff3b30;
+  }
+
+  .sortbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .sortbar label { font-size: 12px; color: #86868b; margin-right: 2px; }
+  .sortbar button {
+    padding: 5px 12px;
+    font-size: 12px;
+    background: rgba(0,0,0,0.04);
+    color: #424245;
+    font-weight: 400;
+  }
+  .sortbar button.active {
+    background: #007aff;
+    color: #fff;
+  }
+
+  .tablewrap {
+    border: 0.5px solid rgba(0,0,0,0.06);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eef1f5; }
-  th { background: #f8fafc; color: #5a6a7a; font-weight: 600; }
-  th.clickable { cursor: pointer; user-select: none; }
-  th.clickable:hover { background: #eef2f7; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th, td {
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 0.5px solid rgba(0,0,0,0.05);
+  }
+  thead th {
+    background: rgba(245,245,247,0.6);
+    font-size: 12px;
+    font-weight: 600;
+    color: #86868b;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 9px 16px;
+  }
+  thead th.clickable { cursor: pointer; user-select: none; }
+  thead th.clickable:hover { color: #0a84ff; }
+
+  tbody td { color: #1d1d1f; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(0,122,255,0.04); }
+  tbody tr.overcap td { background: rgba(255, 59, 48, 0.06) !important; color: #8b2a26; }
+  tbody tr.overcap:hover td { background: rgba(255, 59, 48, 0.10) !important; }
+
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
   td.center { text-align: center; }
-  tr.overcap td { background: #fde7e7 !important; }
-  .empty { text-align: center; padding: 32px; color: #9aa8b5; }
-  .footer { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; font-size: 14px; color: #4a5a6a; padding: 10px 4px 0; }
-  .footer strong { color: #1a2b3c; font-size: 15px; }
-  .footer .muted { color: #9aa8b5; font-size: 13px; }
-  .cap-display { font-size: 13px; color: #d9534f; margin-left: 8px; }
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; z-index: 100; opacity: 0; transition: opacity .2s; }
-  .toast.show { opacity: 1; }
-  .toast.warn { background: #d9534f; }
-  .toast.ok { background: #2ecc71; }
-  .import-export { display: flex; gap: 8px; flex-wrap: wrap; }
-  @media (max-width: 600px) {
-    body { padding: 14px 12px 30px; }
-    h1 { font-size: 19px; }
-    .card { padding: 12px; }
-    th, td { padding: 8px 6px; font-size: 13px; }
-    input[type="text"], input[type="number"] { min-width: 100px; }
+  .empty { text-align: center; padding: 32px; color: #86868b; font-size: 13px; }
+
+  .statusbar {
+    font-size: 12px;
+    color: #424245;
+    padding: 2px 4px 0 4px;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .statusbar strong { font-size: 13px; color: #1d1d1f; }
+  .statusbar .cap { color: #ff3b30; }
+  .statusbar .muted { color: #86868b; }
+
+  .bottombar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 2px;
+  }
+  .bottombar button, .bottombar label {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+  .bottombar label {
+    background: rgba(0,0,0,0.04);
+    color: #1d1d1f;
+    cursor: pointer;
+    font-weight: 500;
+    user-select: none;
+  }
+  .bottombar label:hover { background: rgba(0,0,0,0.08); }
+
+  .toast {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(29, 29, 31, 0.85);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.warn { background: rgba(255, 59, 48, 0.9); }
+  .toast.ok { background: rgba(52, 199, 89, 0.9); }
+
+  @media (max-width: 640px) {
+    body { padding: 16px 10px; }
+    .shell { border-radius: 14px; }
+    .content { padding: 14px 14px 16px; gap: 12px; }
+    .group { padding: 12px 12px 14px; }
+    th, td { padding: 8px 10px; font-size: 13px; }
+    input[type="text"], input[type="number"] { width: 110px; flex: 1; }
   }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>自资费统计<span class="muted" id="titleExtra"></span></h1>
+<div class="shell">
 
-  <div class="card">
-    <h2>自费上限设置</h2>
-    <div class="row">
-      <label>每位序号累计自费上限 (元, 0 表示不限):</label>
-      <input type="number" id="capInput" step="0.01" min="0" placeholder="0">
-      <button onclick="saveCap()">保存上限</button>
-      <span class="cap-display" id="capLabel"></span>
-    </div>
+  <div class="titlebar">
+    <div class="traffic-lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+    <div class="title" id="titlebarText">自资费统计</div>
   </div>
 
-  <div class="card">
-    <h2>录入自费</h2>
-    <div class="row">
-      <label>序号:</label>
-      <input type="text" id="sidInput" autocomplete="off">
-      <label>自费 (元):</label>
-      <input type="number" id="amountInput" step="0.01" min="0">
-      <button onclick="addPayment()">提交缴费</button>
-      <button class="danger" onclick="clearAll()">清空全部</button>
-    </div>
-  </div>
+  <div class="content">
 
-  <div class="card">
-    <h2>缴费记录汇总</h2>
-    <div class="sort-bar">
-      <span>排序:</span>
-      <button class="sort-btn" id="sortSid" onclick="setSort('sid')">序号</button>
-      <button class="sort-btn" id="sortTotal" onclick="setSort('total')">累计自费</button>
-      <button class="sort-btn" id="sortCount" onclick="setSort('count')">次数</button>
-      <button class="sort-btn" id="sortDir" onclick="toggleDir()">升/降序</button>
+    <div class="group">
+      <div class="group-head">
+        <div class="group-title">自费上限设置</div>
+      </div>
+      <div class="group-body">
+        <label>每位序号累计自费上限 (元, 0 表示不限):</label>
+        <input type="number" id="capInput" step="0.01" min="0">
+        <button class="primary" onclick="saveCap()">保存上限</button>
+        <span class="cap-label" id="capLabel"></span>
+      </div>
     </div>
-    <table id="mainTable">
-      <thead>
-        <tr>
-          <th class="clickable" onclick="setSort('sid')">序号</th>
-          <th class="clickable" onclick="setSort('total')">累计自费 (元)</th>
-          <th class="clickable" onclick="setSort('count')">缴费次数</th>
-          <th>历次金额 (元)</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="footer">
-      <span><strong id="totalCount">序号数: 0</strong></span>
-      <span><strong id="totalGrand">全部累计自费总额: 0.00 元</strong><span class="cap-display" id="grandCapLabel"></span></span>
-      <span class="muted" id="orderLabel"></span>
-      <span style="flex:1"></span>
-      <span class="import-export">
-        <button class="ghost" onclick="exportData()">导出数据 (.json)</button>
-        <label class="ghost" style="padding:6px 14px; border-radius:6px; border:1px solid #4a90d9; cursor:pointer;">
+
+    <div class="group">
+      <div class="group-head">
+        <div class="group-title">录入自费</div>
+      </div>
+      <div class="group-body">
+        <label>序号:</label>
+        <input type="text" id="sidInput" autocomplete="off" style="width:150px;">
+        <label>自费 (元):</label>
+        <input type="number" id="amountInput" step="0.01" min="0" style="width:150px;">
+        <button class="primary" onclick="addPayment()">提交缴费</button>
+        <button class="danger" onclick="clearAll()">清空全部</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-head">
+        <div class="group-title">缴费记录汇总</div>
+      </div>
+
+      <div class="sortbar">
+        <span style="color:#86868b;font-size:12px;">排序</span>
+        <button id="sortSid" onclick="setSort('sid')">序号 ▲</button>
+        <button id="sortTotal" onclick="setSort('total')">累计自费 ▲</button>
+        <button id="sortCount" onclick="setSort('count')">次数 ▲</button>
+        <button class="default" onclick="toggleDir()" style="padding:5px 12px;">⬇ 降序</button>
+      </div>
+
+      <div class="tablewrap">
+        <table id="mainTable">
+          <thead>
+            <tr>
+              <th class="clickable" onclick="setSort('sid')">序号</th>
+              <th class="clickable" onclick="setSort('total')" style="text-align:right;">累计自费 (元)</th>
+              <th class="clickable" onclick="setSort('count')" style="text-align:center;">缴费次数</th>
+              <th>历次金额 (元)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="statusbar" id="statusbar" style="margin-top:10px;"></div>
+
+      <div class="bottombar">
+        <button class="default" onclick="exportData()">导出数据</button>
+        <label>
           导入数据
           <input type="file" accept="application/json" style="display:none" onchange="importData(this)">
         </label>
-      </span>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -171,7 +402,8 @@ function fmtDate(iso) {
 function updateTitle() {
   const t = fmtDate(state._settings.first_after_reset_time);
   document.title = t ? `自资费统计  (首次记录: ${t})` : "自资费统计";
-  document.getElementById("titleExtra").textContent = t ? `  (首次记录: ${t})` : "";
+  const subtitle = t ? `· 首次记录 ${t}` : "";
+  document.getElementById("titlebarText").innerHTML = `自资费统计 <span class="subtitle">${subtitle}</span>`;
 }
 
 function saveCap() {
@@ -255,22 +487,16 @@ function refreshTable() {
   const sids = Object.keys(state._students);
 
   let sorted;
-  if (state.sort_col === "sid") {
-    sorted = [...sids].sort((a, b) => naturalCompare(a, b));
-  } else if (state.sort_col === "total") {
-    sorted = [...sids].sort((a, b) => state._students[a].total - state._students[b].total);
-  } else if (state.sort_col === "count") {
-    sorted = [...sids].sort((a, b) => state._students[a].count - state._students[b].count);
-  }
+  if (state.sort_col === "sid") sorted = [...sids].sort((a, b) => naturalCompare(a, b));
+  else if (state.sort_col === "total") sorted = [...sids].sort((a, b) => state._students[a].total - state._students[b].total);
+  else if (state.sort_col === "count") sorted = [...sids].sort((a, b) => state._students[a].count - state._students[b].count);
   if (state.sort_reverse) sorted.reverse();
 
   let grand = 0;
-  let hasOver = false;
   sorted.forEach(sid => {
     const r = state._students[sid];
     grand += r.total;
     const over = cap && cap > 0 && r.total > cap;
-    if (over) hasOver = true;
     const tr = document.createElement("tr");
     if (over) tr.className = "overcap";
     tr.innerHTML =
@@ -285,15 +511,28 @@ function refreshTable() {
     tbody.innerHTML = `<tr><td colspan="4" class="empty">暂无记录，请在上方录入</td></tr>`;
   }
 
-  document.getElementById("totalCount").textContent = `序号数: ${sorted.length}`;
-  document.getElementById("totalGrand").textContent = `全部累计自费总额: ${grand.toFixed(2)} 元`;
-  document.getElementById("grandCapLabel").textContent = cap && cap > 0 ? `  (上限 ${cap.toFixed(2)} 元)` : "";
-  document.getElementById("orderLabel").textContent = `排序: ${state.sort_col === "sid" ? "序号" : state.sort_col === "total" ? "累计自费" : "次数"} (${state.sort_reverse ? "降序" : "升序"})`;
+  const colLabel = state.sort_col === "sid" ? "序号" : state.sort_col === "total" ? "累计自费" : "次数";
+  const order = state.sort_reverse ? "降序" : "升序";
+  const capTxt = cap && cap > 0 ? `  <span class="cap">(上限 ${cap.toFixed(2)} 元)</span>` : "";
+  document.getElementById("statusbar").innerHTML =
+    `<strong>序号数: ${sorted.length} · 全部累计自费总额: ${grand.toFixed(2)} 元</strong>${capTxt} <span class="muted">· 排序: ${colLabel} (${order})</span>`;
 
-  document.getElementById("sortSid").className = "sort-btn " + (state.sort_col === "sid" ? (state.sort_reverse ? "desc active" : "asc active") : "");
-  document.getElementById("sortTotal").className = "sort-btn " + (state.sort_col === "total" ? (state.sort_reverse ? "desc active" : "asc active") : "");
-  document.getElementById("sortCount").className = "sort-btn " + (state.sort_col === "count" ? (state.sort_reverse ? "desc active" : "asc active") : "");
-  document.getElementById("sortDir").textContent = state.sort_reverse ? "降序 ▼" : "升序 ▲";
+  function arrow(c) {
+    if (state.sort_col !== c) return " ▲";
+    return state.sort_reverse ? " ▼" : " ▲";
+  }
+  document.getElementById("sortSid").textContent = "序号" + arrow("sid");
+  document.getElementById("sortTotal").textContent = "累计自费" + arrow("total");
+  document.getElementById("sortCount").textContent = "次数" + arrow("count");
+
+  document.getElementById("sortSid").className = (state.sort_col === "sid" ? "sortbar button active" : "sortbar button");
+  document.getElementById("sortTotal").className = (state.sort_col === "total" ? "sortbar button active" : "sortbar button");
+  document.getElementById("sortCount").className = (state.sort_col === "count" ? "sortbar button active" : "sortbar button");
+
+  const ths = document.querySelectorAll("thead th");
+  ths[0].textContent = "序号" + arrow("sid");
+  ths[1].textContent = "累计自费 (元)" + arrow("total");
+  ths[2].textContent = "缴费次数" + arrow("count");
 
   updateTitle();
 }
@@ -339,7 +578,7 @@ function toast(msg, cls) {
   el.textContent = msg;
   el.className = "toast show " + (cls || "");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = "toast"; }, 2200);
+  toastTimer = setTimeout(() => { el.className = "toast"; }, 2400);
 }
 
 loadData();
